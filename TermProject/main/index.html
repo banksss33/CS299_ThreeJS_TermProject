@@ -1,6 +1,6 @@
-<<<<<<< HEAD
 
 <!DOCTYPE html>
+
 <html>
 <head>
   <meta charset="utf-8">
@@ -22,7 +22,6 @@
   <canvas id="c"></canvas>
 </body>
 
-
 <script type="module">
 
   import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/build/three.module.js';
@@ -31,25 +30,36 @@
   import {GLTFLoader} from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/examples/jsm/loaders/GLTFLoader.js';
 
   function main() {
-    
 
   const canvas = document.querySelector('#c');
   const renderer = new THREE.WebGLRenderer({canvas});
   renderer.shadowMap.enabled = true;
+  
 
   const fov = 45;
   const aspect = 2;  // the canvas default
   const near = 0.1;
   const far = 1000;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(0, 10, 20);
+
+
+  camera.position.set(170, 100, 50);
 
   const controls = new OrbitControls(camera, canvas);
   controls.target.set(0, 5, 0);
   controls.update();
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('black');
+  const loader = new THREE.CubeTextureLoader();
+  const texture = loader.load( [
+      'normal-px.jpg',
+      'normal-nx.jpg',
+      'normal-py.jpg',
+      'normal-ny.jpg',
+      'normal-pz.jpg',
+      'normal-nz.jpg'
+  ] );
+  scene.background = texture; 
 
   class ColorGUIHelper {
     constructor(object, prop) {
@@ -64,77 +74,21 @@
     }
   }
 
-  function makeXYZGUI(gui, vector3, name, onChangeFn) {
-    const folder = gui.addFolder(name);
-    folder.add(vector3, 'x', -10, 10).onChange(onChangeFn);
-    folder.add(vector3, 'y', 0, 10).onChange(onChangeFn);
-    folder.add(vector3, 'z', -10, 10).onChange(onChangeFn);
-    // folder.open();
-  }
-
   {
-    const color = 0xFFFFFF;
-    const intensity = 1;
-    const light = new THREE.DirectionalLight(color, intensity);
-    light.castShadow = true;
-    light.position.set(-100, 50, 0); // x y z
-   
-    scene.add(light);
+    const color = 0xf2ba6a;
+    const intensity = 3;
+    const diameter = 300;
+    const pLight = new THREE.PointLight(color , intensity, diameter);
+    pLight.position.set(0, 50, 0);
+    pLight.castShadow = true;
 
-    const cameraHelper = new THREE.CameraHelper(light.shadow.camera);
-    scene.add(cameraHelper);
+    const light = new THREE.AmbientLight( 0xf2ba6a ,0.5); // soft white light
+    scene.add( light );
+    //scene.add(pLight);
+    //scene.add(light);
 
-    const helper = new THREE.DirectionalLightHelper(light);
-    scene.add(helper);
-
-    function updateCamera() {
-      // update the light target's matrixWorld because it's needed by the helper
-      light.target.updateMatrixWorld();
-      helper.update();
-      // update the light's shadow camera's projection matrix
-      light.shadow.camera.updateProjectionMatrix();
-      // and now update the camera helper we're using to show the light's shadow camera
-      cameraHelper.update();
-    }
-    updateCamera();
-
-    class DimensionGUIHelper {
-      constructor(obj, minProp, maxProp) {
-        this.obj = obj;
-        this.minProp = minProp;
-        this.maxProp = maxProp;
-      }
-      get value() {
-        return this.obj[this.maxProp] * 2;
-      }
-      set value(v) {
-        this.obj[this.maxProp] = v /  2;
-        this.obj[this.minProp] = v / -2;
-      }
-    }
-
-    class MinMaxGUIHelper {
-      constructor(obj, minProp, maxProp, minDif) {
-        this.obj = obj;
-        this.minProp = minProp;
-        this.maxProp = maxProp;
-        this.minDif = minDif;
-      }
-      get min() {
-        return this.obj[this.minProp];
-      }
-      set min(v) {
-        this.obj[this.minProp] = v;
-        this.obj[this.maxProp] = Math.max(this.obj[this.maxProp], v + this.minDif);
-      }
-      get max() {
-        return this.obj[this.maxProp];
-      }
-      set max(v) {
-        this.obj[this.maxProp] = v;
-        this.min = this.min;  // this will call the min setter
-      }
-    }
+    //const helper = new THREE.HemisphereLightHelper(light);
+    //scene.add(helper);
 
     {
       const gltfLoader = new GLTFLoader();
@@ -143,18 +97,20 @@
 
           if ( node.isMesh ) { 
             node.castShadow = true; 
-            node.receiveShadow = true;
           }
 
         } );
 
+        gltf.scene.getObjectByName('Field').castShadow = false;
+        gltf.scene.getObjectByName('Field').receiveShadow = true;
+
         const root = gltf.scene;
+        console.log(root);
         scene.add(root);
 
         // compute the box that contains all the stuff
         // from root and below
         const box = new THREE.Box3().setFromObject(root);
-
         const boxSize = box.getSize(new THREE.Vector3()).length();
         const boxCenter = box.getCenter(new THREE.Vector3());
         
@@ -168,26 +124,18 @@
       });
     }
 
-    const gui = new GUI();
-    gui.addColor(new ColorGUIHelper(light, 'color'), 'value').name('color');
-    gui.add(light, 'intensity', 0, 2, 0.01);
     {
-      const folder = gui.addFolder('Shadow Camera');
-      folder.open();
-      folder.add(new DimensionGUIHelper(light.shadow.camera, 'left', 'right'), 'value', 1, 100)
-      .name('width')
-      .onChange(updateCamera);
-      folder.add(new DimensionGUIHelper(light.shadow.camera, 'bottom', 'top'), 'value', 1, 100)
-      .name('height')
-      .onChange(updateCamera);
-      const minMaxGUIHelper = new MinMaxGUIHelper(light.shadow.camera, 'near', 'far', 0.1);
-      folder.add(minMaxGUIHelper, 'min', 0.1, 50, 0.1).name('near').onChange(updateCamera);
-      folder.add(minMaxGUIHelper, 'max', 0.1, 50, 0.1).name('far').onChange(updateCamera);
-      folder.add(light.shadow.camera, 'zoom', 0.01, 1.5, 0.01).onChange(updateCamera);
+      const geometry = new THREE.SphereGeometry( 15, 32, 16 );
+      const material = new THREE.MeshBasicMaterial( { color: 0xe8dc83 } );
+      const sphere = new THREE.Mesh( geometry, material );
+      sphere.add(pLight);
+      scene.add(sphere);
+      sphere.position.set(0, 100, 0);
     }
 
-    makeXYZGUI(gui, light.position, 'position', updateCamera);
-    makeXYZGUI(gui, light.target.position, 'target', updateCamera);
+    const gui = new GUI();
+    gui.addColor(new ColorGUIHelper(pLight, 'color'), 'value').name('color'); //color GUI
+    gui.add(pLight, 'intensity', 0, 10, 0.01);//intensity GUI
   }
 
   function resizeRendererToDisplaySize(renderer) {
@@ -223,223 +171,3 @@ main();
 
 </script>
 </html>
-
-=======
-
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>CS299 Example</title>
-  <style type="text/css">
-    html, body {
-      margin: 0;
-      height: 100%;
-    }
-    #c {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-  </style>
-</head>
-<body>
-  <canvas id="c"></canvas>
-</body>
-
-
-<script type="module">
-
-  import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/build/three.module.js';
-  import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/examples/jsm/controls/OrbitControls.js';
-  import {GUI} from 'https://threejsfundamentals.org/threejs/../3rdparty/dat.gui.module.js';
-  import {GLTFLoader} from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/examples/jsm/loaders/GLTFLoader.js';
-
-  function main() {
-    
-
-  const canvas = document.querySelector('#c');
-  const renderer = new THREE.WebGLRenderer({canvas});
-  renderer.shadowMap.enabled = true;
-
-  const fov = 45;
-  const aspect = 2;  // the canvas default
-  const near = 0.1;
-  const far = 100;
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(0, 10, 20);
-
-  const controls = new OrbitControls(camera, canvas);
-  controls.target.set(0, 5, 0);
-  controls.update();
-
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color('black');
-
-  class ColorGUIHelper {
-    constructor(object, prop) {
-      this.object = object;
-      this.prop = prop;
-    }
-    get value() {
-      return `#${this.object[this.prop].getHexString()}`;
-    }
-    set value(hexString) {
-      this.object[this.prop].set(hexString);
-    }
-  }
-
-  function makeXYZGUI(gui, vector3, name, onChangeFn) {
-    const folder = gui.addFolder(name);
-    folder.add(vector3, 'x', -10, 10).onChange(onChangeFn);
-    folder.add(vector3, 'y', 0, 10).onChange(onChangeFn);
-    folder.add(vector3, 'z', -10, 10).onChange(onChangeFn);
-    // folder.open();
-  }
-
-  {
-    const color = 0xFFFFFF;
-    const intensity = 1;
-    const light = new THREE.DirectionalLight(color, intensity);
-    light.castShadow = true;
-    light.position.set(0, 10, 0);
-    light.target.position.set(-4, 0, -4);
-    scene.add(light);
-    scene.add(light.target);
-
-    const cameraHelper = new THREE.CameraHelper(light.shadow.camera);
-    scene.add(cameraHelper);
-
-    const helper = new THREE.DirectionalLightHelper(light);
-    scene.add(helper);
-
-    function updateCamera() {
-      // update the light target's matrixWorld because it's needed by the helper
-      light.target.updateMatrixWorld();
-      helper.update();
-      // update the light's shadow camera's projection matrix
-      light.shadow.camera.updateProjectionMatrix();
-      // and now update the camera helper we're using to show the light's shadow camera
-      cameraHelper.update();
-    }
-    updateCamera();
-
-    class DimensionGUIHelper {
-      constructor(obj, minProp, maxProp) {
-        this.obj = obj;
-        this.minProp = minProp;
-        this.maxProp = maxProp;
-      }
-      get value() {
-        return this.obj[this.maxProp] * 2;
-      }
-      set value(v) {
-        this.obj[this.maxProp] = v /  2;
-        this.obj[this.minProp] = v / -2;
-      }
-    }
-
-    class MinMaxGUIHelper {
-      constructor(obj, minProp, maxProp, minDif) {
-        this.obj = obj;
-        this.minProp = minProp;
-        this.maxProp = maxProp;
-        this.minDif = minDif;
-      }
-      get min() {
-        return this.obj[this.minProp];
-      }
-      set min(v) {
-        this.obj[this.minProp] = v;
-        this.obj[this.maxProp] = Math.max(this.obj[this.maxProp], v + this.minDif);
-      }
-      get max() {
-        return this.obj[this.maxProp];
-      }
-      set max(v) {
-        this.obj[this.maxProp] = v;
-        this.min = this.min;  // this will call the min setter
-      }
-    }
-
-    {
-      const gltfLoader = new GLTFLoader();
-      gltfLoader.load('CS299_Main.glb', (gltf) => {
-        const root = gltf.scene;
-        scene.add(root);
-
-        // compute the box that contains all the stuff
-        // from root and below
-        const box = new THREE.Box3().setFromObject(root);
-
-        const boxSize = box.getSize(new THREE.Vector3()).length();
-        const boxCenter = box.getCenter(new THREE.Vector3());
-        
-        // set the camera to frame the box
-        frameArea(boxSize, boxSize, boxCenter, camera);
-
-        // update the Trackball controls to handle the new size
-        controls.maxDistance = boxSize * 10;
-        controls.target.copy(boxCenter);
-        controls.update();
-      });
-    }
-
-    const gui = new GUI();
-    gui.addColor(new ColorGUIHelper(light, 'color'), 'value').name('color');
-    gui.add(light, 'intensity', 0, 2, 0.01);
-    {
-      const folder = gui.addFolder('Shadow Camera');
-      folder.open();
-      folder.add(new DimensionGUIHelper(light.shadow.camera, 'left', 'right'), 'value', 1, 100)
-      .name('width')
-      .onChange(updateCamera);
-      folder.add(new DimensionGUIHelper(light.shadow.camera, 'bottom', 'top'), 'value', 1, 100)
-      .name('height')
-      .onChange(updateCamera);
-      const minMaxGUIHelper = new MinMaxGUIHelper(light.shadow.camera, 'near', 'far', 0.1);
-      folder.add(minMaxGUIHelper, 'min', 0.1, 50, 0.1).name('near').onChange(updateCamera);
-      folder.add(minMaxGUIHelper, 'max', 0.1, 50, 0.1).name('far').onChange(updateCamera);
-      folder.add(light.shadow.camera, 'zoom', 0.01, 1.5, 0.01).onChange(updateCamera);
-    }
-
-    makeXYZGUI(gui, light.position, 'position', updateCamera);
-    makeXYZGUI(gui, light.target.position, 'target', updateCamera);
-  }
-
-  function resizeRendererToDisplaySize(renderer) {
-    const canvas = renderer.domElement;
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    const needResize = canvas.width !== width || canvas.height !== height;
-    if (needResize) {
-      renderer.setSize(width, height, false);
-    }
-    return needResize;
-  }
-
-  function render() {
-
-    resizeRendererToDisplaySize(renderer);
-
-    {
-      const canvas = renderer.domElement;
-      camera.aspect = canvas.clientWidth / canvas.clientHeight;
-      camera.updateProjectionMatrix();
-    }
-
-    renderer.render(scene, camera);
-
-    requestAnimationFrame(render);
-  }
-
-  requestAnimationFrame(render);
-}
-
-main();
-
-</script>
-</html>
-
->>>>>>> 96b29435518c2cf29f823441e6f8e995a3655b4f
