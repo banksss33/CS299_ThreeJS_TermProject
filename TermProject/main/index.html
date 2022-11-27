@@ -1,3 +1,16 @@
+<!--
+Group: 19b3b6
+
+First Name: THANNATHON
+Last Name: NIRATTISAYKUL
+Student ID: 6409682546
+E-mail: thannathon.nir@dome.tu.ac.th
+
+First Name: NATTAPORN
+Last Name: AIMSUWAN
+Student ID: 6409682702
+E-mail: nattaporn.aim@dome.tu.ac.th
+-->
 
 <!DOCTYPE html>
 
@@ -5,7 +18,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>CS299 Example</title>
+  <title>CS299_Group19b3b6_FinalProject</title>
   <style type="text/css">
     html, body {
       margin: 0;
@@ -20,14 +33,18 @@
 </head>
 <body>
   <canvas id="c"></canvas>
+  <iframe src="Sketchbook.mp3" allow="autoplay" style="display:none" id="iframeAudio"></iframe> 
+  <audio autoplay loop  id="playAudio">
+      <source src="Sketchbook.mp3" type="audio/mp3">
+  </audio>
 </body>
 
 <script type="module">
 
-  import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/build/three.module.js';
+  import * as THREE from      'https://threejsfundamentals.org/threejs/resources/threejs/r132/build/three.module.js';
   import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/examples/jsm/controls/OrbitControls.js';
-  import {GUI} from 'https://threejsfundamentals.org/threejs/../3rdparty/dat.gui.module.js';
-  import {GLTFLoader} from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/examples/jsm/loaders/GLTFLoader.js';
+  import {GLTFLoader} from    'https://threejsfundamentals.org/threejs/resources/threejs/r132/examples/jsm/loaders/GLTFLoader.js';
+  import {GUI} from           'https://threejsfundamentals.org/threejs/../3rdparty/dat.gui.module.js';
 
   function main() {
 
@@ -35,31 +52,38 @@
   const renderer = new THREE.WebGLRenderer({canvas});
   renderer.shadowMap.enabled = true;
   
-
   const fov = 45;
   const aspect = 2;  // the canvas default
   const near = 0.1;
   const far = 1000;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
-
-  camera.position.set(170, 100, 50);
+  camera.position.set(170, 120, -150);
 
   const controls = new OrbitControls(camera, canvas);
   controls.target.set(0, 5, 0);
   controls.update();
 
   const scene = new THREE.Scene();
-  const loader = new THREE.CubeTextureLoader();
-  const texture = loader.load( [
-      'normal-px.jpg',
-      'normal-nx.jpg',
-      'normal-py.jpg',
-      'normal-ny.jpg',
-      'normal-pz.jpg',
-      'normal-nz.jpg'
-  ] );
-  scene.background = texture; 
+  const dayLoader = new THREE.CubeTextureLoader();
+  const dayTexture = dayLoader.load( [ //day 
+          'normal-px.jpg', 
+          'normal-nx.jpg',
+          'normal-py.jpg',
+          'normal-ny.jpg',
+          'normal-pz.jpg',
+          'normal-nz.jpg'
+        ] );
+
+  const nightLoader = new THREE.CubeTextureLoader();
+  const nightTexture = nightLoader.load( [ //night
+          'night-px.jpg', 
+          'night-nx.jpg',
+          'night-py.jpg',
+          'night-ny.jpg',
+          'night-pz.jpg',
+          'night-nz.jpg'
+        ] );
 
   class ColorGUIHelper {
     constructor(object, prop) {
@@ -73,70 +97,131 @@
       this.object[this.prop].set(hexString);
     }
   }
-
+  
   {
-    const color = 0xf2ba6a;
-    const intensity = 3;
-    const diameter = 300;
-    const pLight = new THREE.PointLight(color , intensity, diameter);
-    pLight.position.set(0, 50, 0);
-    pLight.castShadow = true;
 
-    const light = new THREE.AmbientLight( 0xf2ba6a ,0.5); // soft white light
+    //sunLight
+    const sunColor = 0xde9225;
+    const sunIntensity = 2;
+    const sunDiameter = 300;
+    const sunLight = new THREE.PointLight(sunColor , sunIntensity, sunDiameter);
+    sunLight.castShadow = true;
+
+    //sun geo and light
+    const sunGeometry = new THREE.SphereGeometry( 10, 32, 16 );
+    const sunMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0xffffff,
+    });
+    const sun = new THREE.Mesh( sunGeometry, sunMaterial );
+    sun.add(sunLight);
+    scene.add(sun);
+    
+    //moonLight
+    const moonColor = 0x6171eb;
+    const moonIntensity = 0.5;
+    const moonDiameter = 300;
+    const moonLight = new THREE.PointLight(moonColor, moonIntensity, moonDiameter);
+    moonLight.castShadow = true;
+
+    //moon geo
+    const textureURL = "https://s3-us-west-2.amazonaws.com/s.cdpn.io/17271/lroc_color_poles_1k.jpg"; 
+    const moonTexture = new THREE.TextureLoader().load( textureURL );
+    const moonGeometry = new THREE.SphereGeometry( 10, 32, 16 );
+    const moonMaterial = new THREE.MeshPhongMaterial({ 
+      
+      map: moonTexture,
+      color: 0xffffff,
+      specular: 0x111111,
+      shininess: 100,
+
+    });
+    const moon = new THREE.Mesh( moonGeometry, moonMaterial );
+    moon.castShadow = true;
+    scene.add(moon);
+
+    //moon light
+    scene.add(moonLight);
+    
+
+    //ambientLight
+    const light = new THREE.AmbientLight( 0xffffff ,0.5); 
     scene.add( light );
-    //scene.add(pLight);
-    //scene.add(light);
 
-    //const helper = new THREE.HemisphereLightHelper(light);
-    //scene.add(helper);
 
-    {
-      const gltfLoader = new GLTFLoader();
-      gltfLoader.load('CS299_Main.glb', (gltf) => {
-        gltf.scene.traverse( function( node ) {
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.load('CS299_Main.glb', (gltf) => {
+      gltf.scene.traverse( function( node ) {
 
-          if ( node.isMesh ) { 
-            node.castShadow = true; 
-          }
+        if ( node.isMesh ) { 
+          node.castShadow = true; 
+        }
 
-        } );
+      } );
 
-        gltf.scene.getObjectByName('Field').castShadow = false;
-        gltf.scene.getObjectByName('Field').receiveShadow = true;
+      gltf.scene.getObjectByName('Field').castShadow = false;
+      gltf.scene.getObjectByName('Field').receiveShadow = true;
 
-        const root = gltf.scene;
-        console.log(root);
-        scene.add(root);
+      const root = gltf.scene;
+      scene.add(root);
 
-        // compute the box that contains all the stuff
-        // from root and below
-        const box = new THREE.Box3().setFromObject(root);
-        const boxSize = box.getSize(new THREE.Vector3()).length();
-        const boxCenter = box.getCenter(new THREE.Vector3());
-        
-        // set the camera to frame the box
-        frameArea(boxSize, boxSize, boxCenter, camera);
+      // compute the box that contains all the stuff
+      // from root and below
+      const box = new THREE.Box3().setFromObject(root);
+      const boxSize = box.getSize(new THREE.Vector3()).length();
+      const boxCenter = box.getCenter(new THREE.Vector3());
 
-        // update the Trackball controls to handle the new size
-        controls.maxDistance = boxSize * 10;
-        controls.target.copy(boxCenter);
-        controls.update();
-      });
-    }
-
-    {
-      const geometry = new THREE.SphereGeometry( 15, 32, 16 );
-      const material = new THREE.MeshBasicMaterial( { color: 0xe8dc83 } );
-      const sphere = new THREE.Mesh( geometry, material );
-      sphere.add(pLight);
-      scene.add(sphere);
-      sphere.position.set(0, 100, 0);
+      // update the Trackball controls to handle the new size
+      controls.maxDistance = boxSize * 10;
+      controls.target.copy(boxCenter);
+      controls.update();
+    });
+      
+    //GUI
+    const options ={
+      speed: 0.005,
     }
 
     const gui = new GUI();
-    gui.addColor(new ColorGUIHelper(pLight, 'color'), 'value').name('color'); //color GUI
-    gui.add(pLight, 'intensity', 0, 10, 0.01);//intensity GUI
-  }
+    gui.add(options, 'speed', 0, 0.1);
+
+    //sun_setting
+    const sun_controls = gui.addFolder('sun_setting')
+    sun_controls.addColor(new ColorGUIHelper(sunLight, 'color'), 'value').name('color'); //sun color GUI
+    sun_controls.add(sunLight, 'intensity', 0.5, 4, 0.01);//intensity GUI
+    sun_controls.open();
+
+    //moon_setting
+    const moon_controls = gui.addFolder('moon_setting')
+    moon_controls.addColor(new ColorGUIHelper(moonLight, 'color'), 'value').name('color'); //moon color GUI
+    moon_controls.add(moonLight, 'intensity', 0.5, 4, 0.01);
+    moon_controls.open();
+
+    var t=0;
+    function render(){
+      requestAnimationFrame(render);
+
+      if (sun.position.y < 0) { //night
+        scene.background = nightTexture;
+      } 
+      else { // day
+        scene.background = dayTexture; 
+      }
+
+      t += options.speed;        
+
+      sun.position.x = 150*Math.cos(t) + 0;
+      sun.position.y = 150*Math.sin(t) + 0; 
+
+      moon.position.x = -150*Math.cos(t) + 0;
+      moon.position.y = -150*Math.sin(t) + 0; 
+
+      moonLight.position.x = -130*Math.cos(t) + 0;
+      moonLight.position.y = -130*Math.sin(t) + 0;
+
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(render);
+};
 
   function resizeRendererToDisplaySize(renderer) {
     const canvas = renderer.domElement;
@@ -152,22 +237,23 @@
   function render() {
 
     resizeRendererToDisplaySize(renderer);
-
     {
       const canvas = renderer.domElement;
       camera.aspect = canvas.clientWidth / canvas.clientHeight;
       camera.updateProjectionMatrix();
     }
+    
 
-    renderer.render(scene, camera);
-
-    requestAnimationFrame(render);
+    renderer.render(scene, camera); 
+    requestAnimationFrame(render); 
   }
-
   requestAnimationFrame(render);
+  
 }
 
 main();
+
+
 
 </script>
 </html>
